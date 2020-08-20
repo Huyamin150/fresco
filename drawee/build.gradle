@@ -74,3 +74,9 @@ task sourcesJar(type: Jar) {
     classifier = 'sources'
 }
 artifacts.add('archives', sourcesJar)
+apply plugin: "upload"
+uploadConfig{
+    name project.name
+    group "com.facebook.fresco"
+    version "2.3.0-DU2-SNAPSHOT"
+}

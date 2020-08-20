@@ -7,10 +7,12 @@
 
 package com.facebook.samples.kotlin
 
+import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import androidx.recyclerview.widget.RecyclerView
 import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import com.facebook.drawee.backends.pipeline.Fresco
@@ -20,12 +22,21 @@ import com.facebook.drawee.backends.pipeline.info.ImagePerfDataListener
 import com.facebook.drawee.backends.pipeline.info.ImagePerfUtils
 import com.facebook.drawee.drawable.ProgressBarDrawable
 import com.facebook.drawee.drawable.ScalingUtils
+import com.facebook.drawee.generic.GenericDraweeHierarchy
 import com.facebook.drawee.generic.GenericDraweeHierarchyBuilder
 import com.facebook.drawee.view.SimpleDraweeView
+import com.facebook.imagepipeline.common.ImageDecodeOptions
+import com.facebook.imagepipeline.common.ImageDecodeOptionsBuilder
 import com.facebook.imagepipeline.common.ResizeOptions
+import com.facebook.imagepipeline.decoder.ImageDecoder
+import com.facebook.imagepipeline.image.CloseableImage
+import com.facebook.imagepipeline.image.EncodedImage
+import com.facebook.imagepipeline.image.QualityInfo
 import com.facebook.imagepipeline.request.ImageRequestBuilder
+import com.facebook.imagepipeline.transformation.BitmapTransformation
+import kotlinx.android.synthetic.main.item_image.view.*
 
-data class ImageHolder(private val view: View,
+data class ImageHolder(private val view: View,val h:GenericDraweeHierarchy,
                        private val resizeOptions: ResizeOptions?) : RecyclerView.ViewHolder(view) {
   companion object {
     private const val DEFAULT_IMAGE_SIZE = 360
@@ -35,6 +46,8 @@ data class ImageHolder(private val view: View,
     val width = resizeOptions?.width ?: DEFAULT_IMAGE_SIZE
     val height = resizeOptions?.height ?: DEFAULT_IMAGE_SIZE
     itemView.layoutParams = ViewGroup.LayoutParams(width, height)
+    itemView.setBackgroundColor(view.context.getColor(R.color.accent))
+    itemView.imageview.hierarchy = h
   }
 
   val logImagePerf = object: ImagePerfDataListener {
@@ -49,13 +62,20 @@ data class ImageHolder(private val view: View,
   }
 
   fun bind(uri: Uri) {
-    itemView as? SimpleDraweeView ?: return
-    itemView.controller = Fresco.newDraweeControllerBuilder()
+    if (itemView.imageview !is SimpleDraweeView) return
+    itemView.imageview.controller = Fresco.newDraweeControllerBuilder()
         .setImageRequest(
             ImageRequestBuilder.newBuilderWithSource(uri)
                 .setResizeOptions(resizeOptions)
+                    .setImageDecodeOptions(ImageDecodeOptions.newBuilder().apply {
+//                      decodeAllFrames = true
+//                      forceStaticImage = true
+                      decodePreviewFrame = true
+                      setBitmapConfig(Bitmap.Config.ARGB_8888)
+
+                    }.build())
                 .build())
-        .setOldController(itemView.controller)
+        .setOldController(itemView.imageview.controller)
         .setAutoPlayAnimations(true)
         .setPerfDataListener(logImagePerf)
         .build()
@@ -78,10 +98,12 @@ class ImageAdapter(private val placeholderDrawable: Drawable,
     val hierarchy = GenericDraweeHierarchyBuilder(context.resources)
         .setPlaceholderImage(placeholderDrawable)
         .setFailureImage(failureDrawable)
+            .setFadeDuration(0)
         .setProgressBarImage(ProgressBarDrawable())
         .setActualImageScaleType(ScalingUtils.ScaleType.CENTER_CROP)
         .build()
-    return ImageHolder(SimpleDraweeView(context, hierarchy), imageResizeOptions)
+    val view = LayoutInflater.from(context).inflate(R.layout.item_image,parent,false)
+    return ImageHolder(view,hierarchy, imageResizeOptions)
   }
 
   override fun onBindViewHolder(holder: ImageHolder, position: Int) {
@@ -90,3 +112,5 @@ class ImageAdapter(private val placeholderDrawable: Drawable,
 
   override fun getItemCount() = uris.size
 }
+
+

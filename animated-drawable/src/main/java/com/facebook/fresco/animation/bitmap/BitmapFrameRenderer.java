@@ -49,4 +49,5 @@ public interface BitmapFrameRenderer {
    * @return the intrinsic height
    */
   int getIntrinsicHeight();
+
 }

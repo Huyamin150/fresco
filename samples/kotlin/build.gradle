@@ -62,9 +62,12 @@ dependencies {
     implementation "androidx.recyclerview:recyclerview:${versions.androidx.recyclerview}"
     implementation "androidx.cardview:cardview:${versions.androidx.cardview}"
     implementation Deps.Tools.Stetho.okhttp3
-
     implementation project(':drawee-backends:drawee-pipeline')
     implementation project(':drawee-span')
+    implementation project(':animated-base')
+    implementation project(':animated-webp')
+    implementation project(':static-webp')
+    implementation project(':animated-gif')
     implementation project(':imagepipeline-backends:imagepipeline-okhttp3')
     implementation project(':tools:stetho')
     implementation project(path: ':imagepipeline-backends:imagepipeline-okhttp3')

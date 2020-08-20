@@ -7,6 +7,8 @@
 
 package com.facebook.common.executors;
 
+import android.util.Log;
+
 import com.facebook.common.logging.FLog;
 import java.util.List;
 import java.util.concurrent.AbstractExecutorService;
@@ -91,7 +93,7 @@ public class ConstrainedExecutorService extends AbstractExecutorService {
     if (runnable == null) {
       throw new NullPointerException("runnable parameter is null");
     }
-
+     if (mWorkQueue.size() > 11) mWorkQueue.poll(); //丢弃队列首位的数据
     if (!mWorkQueue.offer(runnable)) {
       throw new RejectedExecutionException(mName + " queue is full, size=" + mWorkQueue.size());
     }

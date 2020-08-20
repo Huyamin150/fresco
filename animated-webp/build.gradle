@@ -19,19 +19,19 @@ dependencies {
     implementation project(':static-webp')
     implementation project(':animated-base')
 
-    testImplementation project(':imagepipeline-base-test')
-    testImplementation project(':imagepipeline-test')
-    testImplementation TestDeps.junit
-    testImplementation "org.mockito:mockito-core:${MOCKITO_CORE_VERSION}"
-    testImplementation("org.powermock:powermock-api-mockito2:${POWERMOCK_VERSION}") {
-        exclude group: 'org.mockito', module: 'mockito-all'
-    }
-    testImplementation "org.powermock:powermock-module-junit4-rule:${POWERMOCK_VERSION}"
-    testImplementation "org.powermock:powermock-classloading-xstream:${POWERMOCK_VERSION}"
-    testImplementation("org.robolectric:robolectric:${ROBOLECTRIC_VERSION}") {
-        exclude group: 'commons-logging', module: 'commons-logging'
-        exclude group: 'org.apache.httpcomponents', module: 'httpclient'
-    }
+//    testImplementation project(':imagepipeline-base-test')
+//    testImplementation project(':imagepipeline-test')
+//    testImplementation TestDeps.junit
+//    testImplementation "org.mockito:mockito-core:${MOCKITO_CORE_VERSION}"
+//    testImplementation("org.powermock:powermock-api-mockito2:${POWERMOCK_VERSION}") {
+//        exclude group: 'org.mockito', module: 'mockito-all'
+//    }
+//    testImplementation "org.powermock:powermock-module-junit4-rule:${POWERMOCK_VERSION}"
+//    testImplementation "org.powermock:powermock-classloading-xstream:${POWERMOCK_VERSION}"
+//    testImplementation("org.robolectric:robolectric:${ROBOLECTRIC_VERSION}") {
+//        exclude group: 'commons-logging', module: 'commons-logging'
+//        exclude group: 'org.apache.httpcomponents', module: 'httpclient'
+//    }
 }
 apply from: rootProject.file('release.gradle')
 
@@ -61,3 +61,9 @@ task sourcesJar(type: Jar) {
     classifier = 'sources'
 }
 artifacts.add('archives', sourcesJar)
+apply plugin: "upload"
+uploadConfig{
+    name project.name
+    group "com.facebook.fresco"
+    version "2.3.0-DU2-SNAPSHOT"
+}

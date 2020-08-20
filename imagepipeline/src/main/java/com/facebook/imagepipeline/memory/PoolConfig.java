@@ -158,7 +158,7 @@ public class PoolConfig {
     private int mBitmapPoolMaxPoolSize;
     private int mBitmapPoolMaxBitmapSize;
     private boolean mRegisterLruBitmapPoolAsMemoryTrimmable;
-    public boolean mIgnoreBitmapPoolHardCap;
+    public boolean mIgnoreBitmapPoolHardCap = false;
 
     private Builder() {}
 

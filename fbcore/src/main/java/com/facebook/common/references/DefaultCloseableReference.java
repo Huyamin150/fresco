@@ -40,6 +40,7 @@ public class DefaultCloseableReference<T> extends CloseableReference<T> {
       // We put synchronized here so that lint doesn't warn about accessing mIsClosed, which is
       // guarded by this. Lint isn't aware of finalize semantics.
       synchronized (this) {
+        if (!mIsClosed) close();
         if (mIsClosed) {
           return;
         }

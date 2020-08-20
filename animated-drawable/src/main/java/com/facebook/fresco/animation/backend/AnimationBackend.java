@@ -97,4 +97,5 @@ public interface AnimationBackend extends AnimationInformation {
    * example, drop all cached frames.
    */
   void clear();
+
 }

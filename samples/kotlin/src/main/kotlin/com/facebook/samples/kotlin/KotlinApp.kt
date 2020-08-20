@@ -11,7 +11,6 @@ import android.app.Application
 import com.facebook.cache.disk.DiskCacheConfig
 import com.facebook.common.util.ByteConstants
 import com.facebook.drawee.backends.pipeline.Fresco
-import com.facebook.imagepipeline.cache.MemoryCacheParams
 import com.facebook.imagepipeline.core.ImagePipelineConfig
 
 class KotlinApp : Application() {
@@ -23,21 +22,26 @@ class KotlinApp : Application() {
 
   override fun onCreate() {
     super.onCreate()
+    val supplier = DefaultExecutorSupplier2(10)
     val pipelineConfig = ImagePipelineConfig.newBuilder(this)
-        .setBitmapMemoryCacheParamsSupplier {
-          MemoryCacheParams(
-              MAX_MEMORY_CACHE_SIZE,
-              Int.MAX_VALUE,
-              MAX_MEMORY_CACHE_SIZE,
-              Int.MAX_VALUE,
-              Int.MAX_VALUE)
-        }
+//        .setBitmapMemoryCacheParamsSupplier {
+//          MemoryCacheParams(
+//              MAX_MEMORY_CACHE_SIZE,
+//              Int.MAX_VALUE,
+//              MAX_MEMORY_CACHE_SIZE,
+//              Int.MAX_VALUE,
+//              Int.MAX_VALUE)
+//        }
         .setMainDiskCacheConfig(DiskCacheConfig.newBuilder(this)
             .setBaseDirectoryPath(cacheDir)
             .setBaseDirectoryName("stuff")
             .setMaxCacheSize(MAX_DISK_CACHE_SIZE)
             .build())
         .setDownsampleEnabled(true)
+            .setExecutorSupplier(supplier)
+//            .setBitmapMemoryCacheParamsSupplier(DuBitmapMemoryCacheParamsSupplier(this))
+//            .setExecutorServiceForAnimatedImages(DefaultSerialExecutorService2(supplier.forDecode()))
+
         .build()
     Fresco.initialize(this, pipelineConfig)
   }

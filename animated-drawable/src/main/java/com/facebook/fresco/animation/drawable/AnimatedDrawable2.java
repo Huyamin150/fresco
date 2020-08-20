@@ -7,20 +7,35 @@
 
 package com.facebook.fresco.animation.drawable;
 
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.ColorFilter;
+import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.drawable.Animatable;
 import android.graphics.drawable.Drawable;
 import android.os.SystemClock;
+import android.util.ArraySet;
+import android.util.Log;
+
 import com.facebook.common.logging.FLog;
+import com.facebook.common.references.CloseableReference;
 import com.facebook.drawable.base.DrawableWithCaches;
 import com.facebook.drawee.drawable.DrawableProperties;
 import com.facebook.fresco.animation.backend.AnimationBackend;
+import com.facebook.fresco.animation.backend.AnimationBackendDelegate;
 import com.facebook.fresco.animation.backend.AnimationInformation;
+import com.facebook.fresco.animation.bitmap.BitmapAnimationBackend2;
+import com.facebook.fresco.animation.bitmap.preparation.GlideExecutor;
 import com.facebook.fresco.animation.frame.DropFramesFrameScheduler;
 import com.facebook.fresco.animation.frame.FrameScheduler;
+
+import java.util.ArrayList;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import javax.annotation.Nullable;
 
 /**
@@ -76,7 +91,7 @@ public class AnimatedDrawable2 extends Drawable implements Animatable, DrawableW
 
   // Animation statistics
   private int mDroppedFrames;
-
+  private boolean mIsVisible;
   // Listeners
   private volatile AnimationListener mAnimationListener = NO_OP_LISTENER;
   @Nullable private volatile DrawListener mDrawListener = null;
@@ -106,8 +121,18 @@ public class AnimatedDrawable2 extends Drawable implements Animatable, DrawableW
   }
 
   public AnimatedDrawable2(@Nullable AnimationBackend animationBackend) {
+    mIsVisible = true;
     mAnimationBackend = animationBackend;
     mFrameScheduler = createSchedulerForBackendAndDelayMethod(mAnimationBackend);
+    ((AnimationBackendDelegate)mAnimationBackend).setFrameListener(new AnimatedDrawable2.FrameCallBack() {
+      @Override
+      public void onFrameReadyToDraw() {
+        if (getCallback() == null){
+          stop();
+        }
+        invalidateSelf();
+      }
+    });
   }
 
   @Override
@@ -141,6 +166,7 @@ public class AnimatedDrawable2 extends Drawable implements Animatable, DrawableW
     mLastDrawnFrameNumber = mPausedLastDrawnFrameNumber;
     invalidateSelf();
     mAnimationListener.onAnimationStart(this);
+   if (mAnimationBackend instanceof  AnimationBackendDelegate && mIsVisible) ((AnimationBackendDelegate)mAnimationBackend).startLoadingFrame();
   }
 
   /**
@@ -163,6 +189,7 @@ public class AnimatedDrawable2 extends Drawable implements Animatable, DrawableW
     mLastDrawnFrameNumber = -1;
     unscheduleSelf(mInvalidateRunnable);
     mAnimationListener.onAnimationStop(this);
+    if (mAnimationBackend instanceof  AnimationBackendDelegate ) ((AnimationBackendDelegate)mAnimationBackend).stopLoadingFrame();
   }
 
   /**
@@ -178,13 +205,19 @@ public class AnimatedDrawable2 extends Drawable implements Animatable, DrawableW
   @Override
   protected void onBoundsChange(Rect bounds) {
     super.onBoundsChange(bounds);
+    this.bounds = bounds;
     if (mAnimationBackend != null) {
       mAnimationBackend.setBounds(bounds);
     }
   }
 
+  Rect bounds;
+  Paint mPaint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
+  CloseableReference<Bitmap> lastBitmap = null;
+  static Executor executor = Executors.newFixedThreadPool(2);
   @Override
   public void draw(Canvas canvas) {
+    Log.e("===","draw执行");
     if (mAnimationBackend == null || mFrameScheduler == null) {
       return;
     }
@@ -194,69 +227,43 @@ public class AnimatedDrawable2 extends Drawable implements Animatable, DrawableW
             ? actualRenderTimeStartMs - mStartTimeMs + mFrameSchedulingOffsetMs
             : Math.max(mLastFrameAnimationTimeMs, 0);
 
-    // What frame should be drawn?
-    int frameNumberToDraw =
-        mFrameScheduler.getFrameNumberToRender(animationTimeMs, mLastFrameAnimationTimeMs);
-
-    // Check if the animation is finished and draw last frame if so
-    if (frameNumberToDraw == FrameScheduler.FRAME_NUMBER_DONE) {
-      frameNumberToDraw = mAnimationBackend.getFrameCount() - 1;
-      mAnimationListener.onAnimationStop(this);
-      mIsRunning = false;
-    } else if (frameNumberToDraw == 0) {
-      if (mLastDrawnFrameNumber != -1 && actualRenderTimeStartMs >= mExpectedRenderTimeMs) {
-        mAnimationListener.onAnimationRepeat(this);
+    if (mAnimationBackend instanceof  AnimationBackendDelegate){
+     final CloseableReference<Bitmap> bitmap = ((AnimationBackendDelegate)mAnimationBackend).getCurrentFrame();
+      if (!bitmap.isValid()){
+        realDraw(canvas,lastBitmap);
+        return;
       }
-    }
-
-    // Draw the frame
-    boolean frameDrawn = mAnimationBackend.drawFrame(this, canvas, frameNumberToDraw);
-    if (frameDrawn) {
-      // Notify listeners that we draw a new frame and
-      // that the animation might be repeated
-      mAnimationListener.onAnimationFrame(this, frameNumberToDraw);
-      mLastDrawnFrameNumber = frameNumberToDraw;
-    }
-
-    // Log potential dropped frames
-    if (!frameDrawn) {
-      onFrameDropped();
-    }
-
-    long targetRenderTimeForNextFrameMs = FrameScheduler.NO_NEXT_TARGET_RENDER_TIME;
-    long scheduledRenderTimeForNextFrameMs = -1;
-    long actualRenderTimeEnd = now();
-    if (mIsRunning) {
-      // Schedule the next frame if needed.
-      targetRenderTimeForNextFrameMs =
-          mFrameScheduler.getTargetRenderTimeForNextFrameMs(actualRenderTimeEnd - mStartTimeMs);
-      if (targetRenderTimeForNextFrameMs != FrameScheduler.NO_NEXT_TARGET_RENDER_TIME) {
-        scheduledRenderTimeForNextFrameMs =
-            targetRenderTimeForNextFrameMs + mFrameSchedulingDelayMs;
-        scheduleNextFrame(scheduledRenderTimeForNextFrameMs);
-      } else {
-        mAnimationListener.onAnimationStop(this);
-        mIsRunning = false;
+      realDraw(canvas,bitmap);
+      if (lastBitmap != null && lastBitmap != bitmap){
+        executor.execute(new Runnable() {
+          @Override
+          public void run() {
+            CloseableReference.closeSafely(bitmap);
+          }
+        });
+        return;
       }
-    }
-
-    DrawListener listener = mDrawListener;
-    if (listener != null) {
-      listener.onDraw(
-          this,
-          mFrameScheduler,
-          frameNumberToDraw,
-          frameDrawn,
-          mIsRunning,
-          mStartTimeMs,
-          animationTimeMs,
-          mLastFrameAnimationTimeMs,
-          actualRenderTimeStartMs,
-          actualRenderTimeEnd,
-          targetRenderTimeForNextFrameMs,
-          scheduledRenderTimeForNextFrameMs);
+      lastBitmap = bitmap;
     }
     mLastFrameAnimationTimeMs = animationTimeMs;
+  }
+
+  private void realDraw(Canvas canvas,CloseableReference<Bitmap> bitmap){
+    if (bounds == null) {
+      canvas.drawBitmap(bitmap.get(), 0f, 0f, mPaint);
+    } else {
+      canvas.drawBitmap(bitmap.get(), null, bounds, mPaint);
+    }
+  }
+
+  @Override
+  public boolean setVisible(boolean visible, boolean restart) {
+    mIsVisible = visible;
+    if (!visible){
+      CloseableReference.closeSafely(lastBitmap);
+      if (mAnimationBackend instanceof  AnimationBackendDelegate) ((AnimationBackendDelegate)mAnimationBackend).stopLoadingFrame();
+    }
+    return super.setVisible(visible, restart);
   }
 
   @Override
@@ -485,5 +492,9 @@ public class AnimatedDrawable2 extends Drawable implements Animatable, DrawableW
     if (mAnimationBackend != null) {
       mAnimationBackend.clear();
     }
+  }
+
+  public interface FrameCallBack {
+    void onFrameReadyToDraw();
   }
 }

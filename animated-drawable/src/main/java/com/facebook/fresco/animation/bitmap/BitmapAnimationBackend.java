@@ -98,10 +98,12 @@ public class BitmapAnimationBackend
   private int mBitmapWidth;
   private int mBitmapHeight;
   private Bitmap.Config mBitmapConfig = Bitmap.Config.ARGB_8888;
+  @Nullable private Bitmap mFirstFrame;
   @Nullable private FrameListener mFrameListener;
 
   public BitmapAnimationBackend(
       PlatformBitmapFactory platformBitmapFactory,
+      @Nullable Bitmap firstFrame,
       BitmapFrameCache bitmapFrameCache,
       AnimationInformation animationInformation,
       BitmapFrameRenderer bitmapFrameRenderer,
@@ -110,6 +112,7 @@ public class BitmapAnimationBackend
     mPlatformBitmapFactory = platformBitmapFactory;
     mBitmapFrameCache = bitmapFrameCache;
     mAnimationInformation = animationInformation;
+    mFirstFrame = firstFrame;
     mBitmapFrameRenderer = bitmapFrameRenderer;
     mBitmapFramePreparationStrategy = bitmapFramePreparationStrategy;
     mBitmapFramePreparer = bitmapFramePreparer;
@@ -134,6 +137,10 @@ public class BitmapAnimationBackend
   @Override
   public int getFrameCount() {
     return mAnimationInformation.getFrameCount();
+  }
+
+  public Bitmap getFirstFrame(){
+    return mFirstFrame;
   }
 
   @Override

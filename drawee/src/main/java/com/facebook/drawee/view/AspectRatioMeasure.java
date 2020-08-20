@@ -54,12 +54,12 @@ public class AspectRatioMeasure {
     }
     if (shouldAdjust(layoutParams.height)) {
       int widthSpecSize = View.MeasureSpec.getSize(spec.width);
-      int desiredHeight = (int) ((widthSpecSize - widthPadding) / aspectRatio + heightPadding);
+      int desiredHeight = Math.round( ((widthSpecSize - widthPadding) / aspectRatio + heightPadding));
       int resolvedHeight = View.resolveSize(desiredHeight, spec.height);
       spec.height = View.MeasureSpec.makeMeasureSpec(resolvedHeight, View.MeasureSpec.EXACTLY);
     } else if (shouldAdjust(layoutParams.width)) {
       int heightSpecSize = View.MeasureSpec.getSize(spec.height);
-      int desiredWidth = (int) ((heightSpecSize - heightPadding) * aspectRatio + widthPadding);
+      int desiredWidth = Math.round(((heightSpecSize - heightPadding) * aspectRatio + widthPadding));
       int resolvedWidth = View.resolveSize(desiredWidth, spec.width);
       spec.width = View.MeasureSpec.makeMeasureSpec(resolvedWidth, View.MeasureSpec.EXACTLY);
     }

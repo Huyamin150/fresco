@@ -8,11 +8,17 @@
 package com.facebook.fresco.animation.backend;
 
 import android.annotation.SuppressLint;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.ColorFilter;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import androidx.annotation.IntRange;
+
+import com.facebook.common.references.CloseableReference;
+import com.facebook.fresco.animation.bitmap.BitmapAnimationBackend2;
+import com.facebook.fresco.animation.drawable.AnimatedDrawable2;
+
 import javax.annotation.Nullable;
 
 /** Animation backend delegate that forwards all calls to a given {@link AnimationBackend} */
@@ -60,6 +66,26 @@ public class AnimationBackendDelegate<T extends AnimationBackend> implements Ani
       mAnimationBackend.setAlpha(alpha);
     }
     mAlpha = alpha;
+  }
+
+  public void startLoadingFrame(){
+    ((BitmapAnimationBackend2)mAnimationBackend).startLoadingFrame();
+  }
+
+  public CloseableReference<Bitmap> getCurrentFrame(){
+    return  ((BitmapAnimationBackend2)mAnimationBackend).getCurrentFrame();
+  }
+
+  public void stopLoadingFrame(){
+    ((BitmapAnimationBackend2)mAnimationBackend).stopLoadingFrame();
+  }
+
+  public void setFrameListener(AnimatedDrawable2.FrameCallBack listener){
+      ((BitmapAnimationBackend2)mAnimationBackend).setFrameListener(listener);
+  }
+
+  public CloseableReference<Bitmap> getFirst(){
+    return ((BitmapAnimationBackend2)mAnimationBackend).getFirst();
   }
 
   @Override

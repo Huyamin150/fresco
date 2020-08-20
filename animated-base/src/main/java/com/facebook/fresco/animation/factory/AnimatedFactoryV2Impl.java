@@ -17,6 +17,7 @@ import com.facebook.common.executors.UiThreadImmediateExecutorService;
 import com.facebook.common.internal.DoNotStrip;
 import com.facebook.common.internal.Supplier;
 import com.facebook.common.time.RealtimeSinceBootClock;
+import com.facebook.fresco.animation.bitmap.preparation.GlideExecutor;
 import com.facebook.fresco.animation.drawable.AnimatedDrawable2;
 import com.facebook.imagepipeline.animated.base.AnimatedDrawableBackend;
 import com.facebook.imagepipeline.animated.base.AnimatedImageResult;
@@ -35,6 +36,13 @@ import com.facebook.imagepipeline.drawable.DrawableFactory;
 import com.facebook.imagepipeline.image.CloseableImage;
 import com.facebook.imagepipeline.image.EncodedImage;
 import com.facebook.imagepipeline.image.QualityInfo;
+
+import java.util.PriorityQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -117,9 +125,7 @@ public class AnimatedFactoryV2Impl implements AnimatedFactory {
           }
         };
 
-    final SerialExecutorService serialExecutorServiceForFramePreparing = mSerialExecutorService == null ?
-        new DefaultSerialExecutorService(mExecutorSupplier.forDecode()):mSerialExecutorService;
-
+    final ExecutorService serialExecutorServiceForFramePreparing = GlideExecutor.newAnimationExecutor();
     Supplier<Integer> numberOfFramesToPrepareSupplier =
         new Supplier<Integer>() {
           @Override

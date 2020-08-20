@@ -78,3 +78,9 @@ artifacts.add('archives', sourcesJar)
 artifacts.add('testOutput', jarTest)
 
 build.dependsOn jarTest
+apply plugin: "upload"
+uploadConfig{
+    name project.name
+    group "com.facebook.fresco"
+    version "2.3.0-DU2-SNAPSHOT"
+}

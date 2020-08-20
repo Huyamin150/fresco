@@ -35,11 +35,12 @@ buildscript {
         google()
         jcenter()
         mavenCentral()
+        maven { url "http://front-pkg.dewu.com:8888/android/repository/maven-public/" }
     }
     dependencies {
         classpath GradleDeps.Android.gradlePlugin
         classpath GradleDeps.Kotlin.gradlePlugin
-
+        classpath "com.shizhuang.duapp.plugin:upload:1.5.4"
         classpath GradleDeps.Publishing.bintrayGradlePlugin
         classpath GradleDeps.Publishing.androidMavenGradlePlugin
 
@@ -61,6 +62,7 @@ subprojects {
     repositories {
         google()
         jcenter()
+        maven { url "http://front-pkg.dewu.com:8888/android/repository/maven-public/" }
     }
 
     configurations.all {

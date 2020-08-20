@@ -14,7 +14,9 @@ import com.facebook.common.internal.Supplier;
 import com.facebook.common.time.MonotonicClock;
 import com.facebook.fresco.animation.backend.AnimationBackend;
 import com.facebook.fresco.animation.backend.AnimationBackendDelegateWithInactivityCheck;
+import com.facebook.fresco.animation.backend.AnimationInformation;
 import com.facebook.fresco.animation.bitmap.BitmapAnimationBackend;
+import com.facebook.fresco.animation.bitmap.BitmapAnimationBackend2;
 import com.facebook.fresco.animation.bitmap.BitmapFrameCache;
 import com.facebook.fresco.animation.bitmap.BitmapFrameRenderer;
 import com.facebook.fresco.animation.bitmap.cache.AnimationFrameCacheKey;
@@ -23,7 +25,9 @@ import com.facebook.fresco.animation.bitmap.cache.KeepLastFrameCache;
 import com.facebook.fresco.animation.bitmap.cache.NoOpCache;
 import com.facebook.fresco.animation.bitmap.preparation.BitmapFramePreparationStrategy;
 import com.facebook.fresco.animation.bitmap.preparation.BitmapFramePreparer;
+import com.facebook.fresco.animation.bitmap.preparation.BitmapFrameRender;
 import com.facebook.fresco.animation.bitmap.preparation.DefaultBitmapFramePreparer;
+import com.facebook.fresco.animation.bitmap.preparation.DefaultBitmapFramePreparer2;
 import com.facebook.fresco.animation.bitmap.preparation.FixedNumberBitmapFramePreparationStrategy;
 import com.facebook.fresco.animation.bitmap.wrapper.AnimatedDrawableBackendAnimationInformation;
 import com.facebook.fresco.animation.bitmap.wrapper.AnimatedDrawableBackendFrameRenderer;
@@ -91,39 +95,40 @@ public class ExperimentalBitmapAnimationDrawableFactory implements DrawableFacto
   private AnimationBackend createAnimationBackend(AnimatedImageResult animatedImageResult) {
     AnimatedDrawableBackend animatedDrawableBackend =
         createAnimatedDrawableBackend(animatedImageResult);
-
+    AnimationInformation information =  new AnimatedDrawableBackendAnimationInformation(animatedDrawableBackend);
     BitmapFrameCache bitmapFrameCache = createBitmapFrameCache(animatedImageResult);
     BitmapFrameRenderer bitmapFrameRenderer =
         new AnimatedDrawableBackendFrameRenderer(bitmapFrameCache, animatedDrawableBackend);
 
     int numberOfFramesToPrefetch = mNumberOfFramesToPrepareSupplier.get();
     BitmapFramePreparationStrategy bitmapFramePreparationStrategy = null;
-    BitmapFramePreparer bitmapFramePreparer = null;
+    BitmapFrameRender bitmapFramePreparer = null;
     if (numberOfFramesToPrefetch > 0) {
       bitmapFramePreparationStrategy =
           new FixedNumberBitmapFramePreparationStrategy(numberOfFramesToPrefetch);
-      bitmapFramePreparer = createBitmapFramePreparer(bitmapFrameRenderer);
+      bitmapFramePreparer = createBitmapFramePreparer(bitmapFrameRenderer,information);
     }
-
-    BitmapAnimationBackend bitmapAnimationBackend =
-        new BitmapAnimationBackend(
-            mPlatformBitmapFactory,
-            bitmapFrameCache,
-            new AnimatedDrawableBackendAnimationInformation(animatedDrawableBackend),
+    BitmapAnimationBackend2 bitmapAnimationBackend =
+        new BitmapAnimationBackend2(
+                mPlatformBitmapFactory,
+                mExecutorServiceForFramePreparing,
+                animatedImageResult.getPreviewBitmap(),
+                information,
             bitmapFrameRenderer,
-            bitmapFramePreparationStrategy,
             bitmapFramePreparer);
 
     return AnimationBackendDelegateWithInactivityCheck.createForBackend(
         bitmapAnimationBackend, mMonotonicClock, mScheduledExecutorServiceForUiThread);
   }
 
-  private BitmapFramePreparer createBitmapFramePreparer(BitmapFrameRenderer bitmapFrameRenderer) {
-    return new DefaultBitmapFramePreparer(
+  private BitmapFrameRender createBitmapFramePreparer(BitmapFrameRenderer bitmapFrameRenderer, AnimationInformation information) {
+    return new DefaultBitmapFramePreparer2(
         mPlatformBitmapFactory,
         bitmapFrameRenderer,
         Bitmap.Config.ARGB_8888,
-        mExecutorServiceForFramePreparing);
+        mExecutorServiceForFramePreparing,
+            information
+            );
   }
 
   private AnimatedDrawableBackend createAnimatedDrawableBackend(

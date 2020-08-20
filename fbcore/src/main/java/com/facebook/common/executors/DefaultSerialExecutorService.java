@@ -7,8 +7,12 @@
 
 package com.facebook.common.executors;
 
+import android.util.Log;
+
 import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.PriorityBlockingQueue;
 
 /**
  * Default implementation of {@link SerialExecutorService} that wraps an existing {@link Executor}.
@@ -19,7 +23,7 @@ public class DefaultSerialExecutorService extends ConstrainedExecutorService
   public DefaultSerialExecutorService(Executor executor) {
     // SerialExecutorService is just a ConstrainedExecutorService with a concurrency limit
     // of one and an unbounded work queue.
-    super("SerialExecutor", 1, executor, new LinkedBlockingQueue<Runnable>());
+    super("SerialExecutor", 1, executor, new PriorityBlockingQueue<Runnable>());
   }
 
   /**
@@ -32,4 +36,7 @@ public class DefaultSerialExecutorService extends ConstrainedExecutorService
   public synchronized void execute(Runnable runnable) {
     super.execute(runnable);
   }
+
+
+
 }
